@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FlashAI – AI-Powered Flashcard Generator</title>
+  <meta name="description" content="AI-Powered Flashcard Generator and Revision System. Generate smart flashcards for any subject and track your revision progress." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     HEADER / NAVBAR
+══════════════════════════════════════════════════════ -->
+<header class="navbar" role="banner">
+  <div class="navbar-inner">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <span class="brand-name">FlashAI</span>
+        <span class="brand-tagline">Smart Flashcard Generator</span>
+      </div>
+    </div>
+    <div class="navbar-stats" id="navStats" style="display:none;">
+      <span class="stat-chip easy-chip">✓ <span id="navEasy">0</span> Easy</span>
+      <span class="stat-chip revision-chip">⟳ <span id="navRevision">0</span> Revision</span>
+      <span class="stat-chip hard-chip">✕ <span id="navHard">0</span> Hard</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO / GENERATE SECTION
+══════════════════════════════════════════════════════ -->
+<main>
+  <section class="hero-section" id="generateSection">
+    <div class="hero-content">
+      <h1 class="hero-title">Generate Smart Flashcards</h1>
+      <p class="hero-subtitle">Enter your subject and topic to instantly generate AI-powered study flashcards with revision tracking.</p>
+    </div>
+
+    <!-- GENERATE FORM CARD -->
+    <div class="form-card" id="formCard">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="subjectInput">📚 Subject Name <span class="required">*</span></label>
+          <input
+            type="text"
+            id="subjectInput"
+            placeholder="e.g., Computer Science, Mathematics, Physics"
+            maxlength="100"
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-group">
+          <label for="topicInput">🎯 Topic Name <span class="required">*</span></label>
+          <input
+            type="text"
+            id="topicInput"
+            placeholder="e.g., Data Structures, Calculus, Quantum Physics"
+            maxlength="100"
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-group full-width">
+          <label for="materialInput">📄 Study Material <span class="optional">(Optional)</span></label>
+          <textarea
+            id="materialInput"
+            rows="4"
+            placeholder="Paste your notes, textbook content, or any study material here. The AI will use it to generate more relevant flashcards."
+            maxlength="5000"
+          ></textarea>
+          <span class="char-count" id="charCount">0 / 5000</span>
+        </div>
+        <div class="form-group">
+          <label for="countInput">🃏 Number of Flashcards</label>
+          <div class="count-input-wrap">
+            <input
+              type="number"
+              id="countInput"
+              value="25"
+              min="25"
+              max="100"
+              step="5"
+            />
+            <span class="count-hint">Min: 25 | Max: 100</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-primary" id="generateBtn" onclick="generateFlashcards()">
+          <span class="btn-icon">✨</span>
+          <span class="btn-text">Generate Flashcards</span>
+        </button>
+        <button class="btn-ghost" id="clearFormBtn" onclick="clearForm()">
+          Clear Form
+        </button>
+      </div>
+
+      <!-- Status / Loading -->
+      <div class="status-bar" id="statusBar" style="display:none;">
+        <div class="status-content">
+          <div class="spinner" id="loadingSpinner"></div>
+          <span id="statusMessage">Generating your flashcards...</span>
+        </div>
+      </div>
+
+      <!-- Error message -->
+      <div class="alert alert-error" id="errorAlert" style="display:none;">
+        <span class="alert-icon">⚠️</span>
+        <span id="errorMessage"></span>
+      </div>
+    </div>
+  </section>
+
+<!-- ══════════════════════════════════════════════════════
+     FLASHCARD STUDY SECTION (hidden until cards generated)
+══════════════════════════════════════════════════════ -->
+  <section class="study-section" id="studySection" style="display:none;" aria-label="Flashcard Study Area">
+
+    <!-- Study Controls Bar -->
+    <div class="study-controls-bar">
+      <div class="study-meta">
+        <span class="topic-badge" id="topicBadge">Topic</span>
+        <span class="source-badge" id="sourceBadge">Local</span>
+      </div>
+      <div class="study-actions">
+        <button class="btn-sm btn-outline" id="shuffleBtn" onclick="shuffleCards()">🔀 Shuffle</button>
+        <button class="btn-sm btn-outline" id="resetProgressBtn" onclick="confirmResetProgress()">🔄 Reset Progress</button>
+        <button class="btn-sm btn-danger-outline" onclick="goBackToForm()">← New Topic</button>
+      </div>
+    </div>
+
+    <!-- Category Filter -->
+    <div class="filter-section">
+      <label class="filter-label">Filter by Category:</label>
+      <div class="category-pills" id="categoryPills" role="group" aria-label="Category filters">
+        <button class="pill active" data-category="all" onclick="filterByCategory('all')">All Cards</button>
+      </div>
+    </div>
+
+    <!-- Progress Overview -->
+    <div class="progress-overview" id="progressOverview">
+      <div class="progress-card easy-progress">
+        <div class="progress-number" id="easyCount">0</div>
+        <div class="progress-label">Easy</div>
+        <div class="progress-bar-wrap"><div class="progress-bar easy-bar" id="easyBar"></div></div>
+      </div>
+      <div class="progress-card revision-progress">
+        <div class="progress-number" id="revisionCount">0</div>
+        <div class="progress-label">Needs Revision</div>
+        <div class="progress-bar-wrap"><div class="progress-bar revision-bar" id="revisionBar"></div></div>
+      </div>
+      <div class="progress-card hard-progress">
+        <div class="progress-number" id="hardCount">0</div>
+        <div class="progress-label">Difficult</div>
+        <div class="progress-bar-wrap"><div class="progress-bar hard-bar" id="hardBar"></div></div>
+      </div>
+      <div class="progress-card total-progress">
+        <div class="progress-number" id="totalCount">0</div>
+        <div class="progress-label">Total Cards</div>
+        <div class="progress-bar-wrap"><div class="progress-bar total-bar" style="width:100%;"></div></div>
+      </div>
+    </div>
+
+    <!-- Card Counter -->
+    <div class="card-counter">
+      <span id="currentCardNum">1</span> / <span id="totalCardNum">0</span>
+    </div>
+
+    <!-- THE FLASHCARD -->
+    <div class="flashcard-wrapper">
+      <div class="flashcard" id="flashcard" onclick="toggleCard()" role="button" aria-label="Click to flip card" tabindex="0">
+        <div class="card-front" id="cardFront">
+          <div class="card-category-tag" id="cardCategory">Category</div>
+          <div class="card-side-label">QUESTION</div>
+          <p class="card-content" id="questionText">Question will appear here</p>
+          <div class="flip-hint">
+            <span>👆 Click to reveal answer</span>
+          </div>
+        </div>
+        <div class="card-back" id="cardBack">
+          <div class="card-side-label answer-label">ANSWER</div>
+          <p class="card-content" id="answerText">Answer will appear here</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Show Answer Button -->
+    <div class="show-answer-wrap">
+      <button class="btn-show-answer" id="showAnswerBtn" onclick="showAnswer()">
+        👁 Show Answer
+      </button>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+      <button class="btn-nav" id="prevBtn" onclick="prevCard()" aria-label="Previous card">
+        ← Previous
+      </button>
+      <button class="btn-nav btn-next" id="nextBtn" onclick="nextCard()" aria-label="Next card">
+        Next →
+      </button>
+    </div>
+
+    <!-- Difficulty Buttons (Revision Mode) -->
+    <div class="difficulty-section" id="difficultySection">
+      <p class="difficulty-label">How well do you know this card?</p>
+      <div class="difficulty-buttons">
+        <button class="btn-diff btn-easy" id="easyBtn" onclick="markDifficulty('easy')" aria-label="Mark as easy">
+          ✅ Easy
+        </button>
+        <button class="btn-diff btn-revision" id="revisionBtn" onclick="markDifficulty('revision')" aria-label="Mark as needs revision">
+          🔄 Needs Revision
+        </button>
+        <button class="btn-diff btn-hard" id="hardBtn" onclick="markDifficulty('difficult')" aria-label="Mark as difficult">
+          ❌ Difficult
+        </button>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     CONFIRMATION MODAL
+══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="confirmModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-box">
+    <h3 id="modalTitle">⚠️ Reset Progress?</h3>
+    <p>This will clear all your Easy / Needs Revision / Difficult markings for this session. This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-primary btn-danger" onclick="resetProgress()">Yes, Reset</button>
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>FlashAI – AI Flashcard Generator | MCA Practical Project | Built with Node.js + Express</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
